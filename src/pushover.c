@@ -134,6 +134,11 @@ int main( int argc, char *argv[] ) {
         curl_easy_setopt( curl, CURLOPT_URL, "https://api.pushover.net/1/messages.json" );
         curl_easy_setopt( curl, CURLOPT_MIMEPOST, mime );
 
+        // For now we'll send the output to /dev/null as it is only useful for
+        // debugging. We can keep it on the screen if we would later add a debug mode.
+        FILE *devnull = fopen( "/dev/null", "w" );
+        curl_easy_setopt( curl, CURLOPT_WRITEDATA, devnull );
+
         // Perform the request
         res = curl_easy_perform( curl );
 
@@ -146,6 +151,7 @@ int main( int argc, char *argv[] ) {
         // Clean up
         curl_easy_cleanup( curl );
         curl_mime_free( mime );
+        fclose( devnull );
     }
 
     curl_global_cleanup();
