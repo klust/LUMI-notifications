@@ -4,18 +4,21 @@
 // Written by Kurt Lust
 //
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <getopt.h>
 #include "ini.h"
 #include <curl/curl.h>
 
-#define ERROR_READ_INI_FILE 1
-#define ERROR_NO_APPKEY     2
-#define ERROR_NO_USERKEY    3
-#define ERROR_NO_ENV_HOME   4
-#define ERROR_OUT_OF_MEMORY 5
+#define ERROR_READ_INI_FILE  1
+#define ERROR_NO_APPKEY      2
+#define ERROR_NO_USERKEY     3
+#define ERROR_NO_ENV_HOME    4
+#define ERROR_OUT_OF_MEMORY  5
+#define ERROR_WRONG_ARGUMENT 6
 
 const char *version = "0.1";
 const char *default_config_file = ".LUMI-messenger.ini";
@@ -40,18 +43,20 @@ void PrintHelp( void ) {
     fprintf( stderr,
         "\n"
         "Command line options for pushover:\n"
-        "   -a/--appkey :             Specify the application key for pushover, overwriting\n"
-        "                             what is in the configuration file.\n"
-        "   -c/--configuration-file : Specify the configuration file to use. The default\n"
-        "                             is ~/.LUMI-messenger.ini.\n"
-        "   -d/--debug :              Print additional debug info.\n"
-        "   -m/--message :            Message to send.\n"
-        "   -s/--sound :              Specify the sound to use in pushover from the list of\n"
-        "                             pushover-supported sounds."
-        "   -t/--title :              Specify a title for the message (e.g., Alert)"
-        "   -u/--userkey :            Specify the user key for pushover, overwriting what\n"
-        "                             is in the configuration file.\n"
-        "   -v/--version :            Print the version of pushover.\n"
+        "   -a/--appkey :               Specify the application key for pushover, overwriting\n"
+        "                               what is in the configuration file.\n"
+        "   -c/--configuration-file     Specify the configuration file to use. The default\n"
+        "                               is ~/.LUMI-messenger.ini.\n"
+        "   -d/--debug                  Print additional debug info.\n"
+        "   -m/--message                Message to send.\n"
+        "   -n/--no-configuration-file  Do not read any configuration file, use command \n"
+        "                               line arguments instead.\n"
+        "   -s/--sound                  Specify the sound to use in pushover from the list of\n"
+        "                               pushover-supported sounds.\n"
+        "   -t/--title                  Specify a title for the message (e.g., Alert)\n"
+        "   -u/--userkey                Specify the user key for pushover, overwriting what\n"
+        "                               is in the configuration file.\n"
+        "   -v/--version                Print the version of pushover.\n"
         "\n"
         "Sounds known by pushover:\n"
         "Name          Description         Name          Description\n"
@@ -99,7 +104,9 @@ static int handler( void* user, const char* section, const char* name,
 
 int main( int argc, char *argv[] ) {
 
-    // Get the message to print
+    //
+    // Get the command line arguments
+    //
 
     const char *arg_appkey = (char *) NULL;
     const char *arg_userkey = (char *) NULL;
@@ -107,14 +114,97 @@ int main( int argc, char *argv[] ) {
     const char *arg_title = (char *) NULL;
     const char *arg_message = (char *) NULL;
     const char *arg_sound = (char *) NULL;
-    int debug = 0;
-    int verbose = 0;
+    int arg_debug = 0;
+    int arg_no_configuration_file = 0;
 
-    if ( argc == 2 ) {
-        arg_message = argv[1];
+    // Define the long options
+    // { "name", has_arg, *flag, val }
+    static struct option long_options[] = {
+        {"appkey",                required_argument, 0, 'a'},
+        {"configuration-file",    required_argument, 0, 'c'},
+        {"debug",                 no_argument,       0, 'd'},
+        {"help",                  no_argument,       0, 'h'},
+        {"message",               required_argument, 0, 'm'},
+        {"no-configuration-file", no_argument,       0, 'n'},
+        {"sound",                 required_argument, 0, 's'},
+        {"title",                 required_argument, 0, 't'},
+        {"userkey",               required_argument, 0, 'u'},
+        {"version",               no_argument,       0, 'v'},
+        {0,                       0,                 0, 0} // Required end of array
+    };
+
+    int option_index = 0;
+    int opt;
+    while ( ( opt = getopt_long( argc, argv, "a:c:dhm:ns:t:u:v", long_options, &option_index) ) != -1 ) {
+        switch (opt) {
+            case 'a':
+                arg_appkey = optarg;
+                break;
+            case 'c': 
+                arg_config_file = optarg;
+                arg_no_configuration_file = 0;
+                break;
+            case 'd':
+                arg_debug = 1;
+                break;
+            case 'h': 
+                PrintHelp();
+                return 0;
+            case 'm':
+                arg_message = optarg;
+                break;
+            case 'n':
+                arg_no_configuration_file = 1;
+                break;
+            case 's':
+                arg_sound = optarg;
+                break;
+            case 't':
+                arg_title = optarg;
+                break;
+            case 'u':
+                arg_userkey = optarg;
+                break;
+            case 'v':
+                printf( "pushover version %s", version );
+                return 0;
+            case '?':
+                if ( (optopt == 'a') || (optopt == 'c') || (optopt == 's')  || (optopt == 't') || (optopt == 'u') )
+                    fprintf( stderr, "Option -%c requires an argument.\n", optopt) ;
+                else if ( isprint( optopt ) )
+                    fprintf( stderr, "Unknown option `-%c'.\n", optopt );
+                else
+                    fprintf( stderr, "Unknown option character `\\x%x'.\n", optopt);
+                return ERROR_WRONG_ARGUMENT;
+        } // End switch ( opt )
+    } // End while
+
+    if ( arg_message == NULL ) {
+        // No message specified with -m
+        if ( optind == (argc - 1) ) {
+            arg_message = argv[optind];
+        } else if ( optind < (argc - 1) ) {
+            fprintf( stderr, "Too many arguments that may be a message." );
+            return ERROR_WRONG_ARGUMENT;
+        }
+    } else {
+        // Message already specified with -m
+        if ( optind < argc ) {
+            fprintf( stderr, "Too many arguments that may be a message." );
+            return ERROR_WRONG_ARGUMENT;
+        }
     }
 
-
+    if ( arg_debug != 0 ) {
+        printf( "\nValues after processing the argument list:\n" );
+        if ( arg_appkey != NULL )      printf( "- appkey from argument list: %s\n",      arg_appkey );
+        if ( arg_userkey != NULL )     printf( "- userkey from argument list: %s\n",     arg_userkey );
+        if ( arg_title != NULL )       printf( "- title from argument list: %s\n",       arg_title );
+        if ( arg_message != NULL )     printf( "- message from argument list: %s\n",     arg_message );
+        if ( arg_sound != NULL )       printf( "- sound from argument list: %s\n",       arg_sound );
+        if ( arg_config_file != NULL ) printf( "- config file from argument list: %s\n", arg_config_file );
+        printf( "\n" );
+    }
 
 
     // Read data from the INI file.
@@ -127,47 +217,73 @@ int main( int argc, char *argv[] ) {
     ini_config.sound   = NULL;
     char *config_path_file = NULL;
 
-    // First compute the full path the home directory of the user.
+    if ( arg_no_configuration_file == 0 ) {
 
-    if ( arg_config_file == NULL ) { // No -c argument given, so the default is used.
+        // First compute the full path the home directory of the user.
 
-        char *home_dir = getenv( "HOME" );
-        if ( home_dir == NULL ) {
-            fprintf( stderr, "Cannot locate the home directory, the environment variable HOME is missing.\n" );
-            return ERROR_NO_ENV_HOME;
+        if ( arg_config_file == NULL ) { // No -c argument given, so the default is used.
+
+            char *home_dir = getenv( "HOME" );
+            if ( home_dir == NULL ) {
+                fprintf( stderr, "Cannot locate the home directory, the environment variable HOME is missing.\n" );
+                return ERROR_NO_ENV_HOME;
+            }
+
+            const int required_string_length = strlen( home_dir ) + strlen( default_config_file ) + 2; // +2: slash and terminating null
+
+            config_path_file = (char *) malloc( (size_t) (required_string_length * sizeof( char )) );
+            if ( config_path_file == NULL ) {
+                fprintf( stderr, "Memory allocation failed on line %d of pushover.c.\n", __LINE__ );
+                return ERROR_OUT_OF_MEMORY;
+            }
+
+            snprintf( config_path_file, required_string_length, "%s/%s", 
+                    home_dir, default_config_file );
+
+        } else
+            config_path_file = (char *) arg_config_file;
+
+        // Now read the actual data from the configuration file.
+
+        if ( ini_parse( config_path_file, handler, &ini_config ) < 0 ) {
+            fprintf( stderr, "Failed to load the INI file %s\n", config_path_file );
+            return ERROR_READ_INI_FILE;
         }
 
-        const int required_string_length = strlen( home_dir ) + strlen( default_config_file ) + 2; // +2: slash and terminating null
-
-        config_path_file = (char *) malloc( (size_t) (required_string_length * sizeof( char )) );
-        if ( config_path_file == NULL ) {
-            fprintf( stderr, "Memory allocation failed on line %d of pushover.c.\n", __LINE__ );
-            return ERROR_OUT_OF_MEMORY;
+        if ( arg_debug != 0 ) {
+            printf( "Values read from the configuration file %s:\n", config_path_file );
+            if ( ini_config.appkey != NULL )  printf( "- appkey from argument list: %s\n",  ini_config.appkey );
+            if ( ini_config.userkey != NULL ) printf( "- userkey from argument list: %s\n", ini_config.userkey );
+            if ( ini_config.title != NULL )   printf( "- title from argument list: %s\n",   ini_config.title );
+            if ( ini_config.message != NULL ) printf( "- message from argument list: %s\n", ini_config.message );
+            if ( ini_config.sound != NULL )   printf( "- sound from argument list: %s\n",   ini_config.sound );
+            printf( "\n" );
         }
 
-        snprintf( config_path_file, required_string_length, "%s/%s", 
-                  home_dir, default_config_file );
-
-    }    
-
-
-    // Now read the actual data from the configuration file.
-
-    if ( ini_parse( config_path_file, handler, &ini_config ) < 0 ) {
-        fprintf( stderr, "Failed to load the INI file %s\n", config_path_file );
-        return ERROR_READ_INI_FILE;
-    }
+    } else if ( arg_debug != 0 )
+        printf( "No configuration file read.\n\n" );
 
     pushover_configuration config; // Actual configuration to use to send the message
 
     // Determine the actual appkey
 
+    int source_appkey = 0;   // Variable used to track the source of the appkey for debug output
+    int source_userkey = 0;  // Variable used to track the source of the userkey for debug output
+    int source_title = 0;    // Variable used to track the source of the title for debug output
+    int source_message = 0;  // Variable used to track the source of the message for debug output
+    int source_sound = 0;    // Variable used to track the source of the sound for debug output
+
     if ( arg_appkey != NULL ) {
         config.appkey = arg_appkey;
+        source_appkey = 1;
     } else if ( ini_config.appkey != NULL ) {
         config.appkey = ini_config.appkey;
+        source_appkey = 2;
     } else {
-        fprintf( stderr, "No appkey found for pushover in ~/.LUMI-messenger.ini\n" );
+        if ( config_path_file == NULL )
+            fprintf( stderr, "No appkey given.\n" );
+        else
+            fprintf( stderr, "No appkey given in either %s or on the command line.\n", config_path_file );
         return ERROR_NO_APPKEY;
     }
 
@@ -175,10 +291,15 @@ int main( int argc, char *argv[] ) {
 
     if ( arg_userkey != NULL ) {
         config.userkey = arg_userkey;
+        source_userkey = 1;
     } else if ( ini_config.userkey != NULL ) {
         config.userkey = ini_config.userkey;
+        source_userkey = 2;
     } else {
-        fprintf( stderr, "No userkey found for pushover in ~/.LUMI-messenger.ini\n" );
+        if ( config_path_file == NULL )
+            fprintf( stderr, "No userkey given.\n" );
+        else
+            fprintf( stderr, "No userkey given in either %s or on the command line.\n", config_path_file );
         return ERROR_NO_USERKEY;
     }
    
@@ -186,8 +307,10 @@ int main( int argc, char *argv[] ) {
 
     if ( arg_title != NULL ) {
         config.title = arg_title;
+        source_title = 1;
     } else if ( ini_config.title != NULL ) {
         config.title = ini_config.title;
+        source_title = 2;
     } else {
         config.title = NULL;
     }
@@ -196,8 +319,10 @@ int main( int argc, char *argv[] ) {
 
     if ( arg_message != NULL ) {
         config.message = arg_message;
+        source_message = 1;
     } else if ( ini_config.message != NULL ) {
         config.message = ini_config.message;
+        source_message = 2;
     } else {
         config.message = default_message;
     }
@@ -206,17 +331,24 @@ int main( int argc, char *argv[] ) {
 
     if ( arg_sound != NULL ) {
         config.sound = arg_sound;
+        source_sound = 1;
     } else if ( ini_config.sound != NULL ) {
         config.sound = ini_config.sound;
+        source_sound = 2;
     } else {
         config.sound = NULL;
     }
-   
 
-
-    // Debug line, should be removed as it prints the secrets on the screen
-    // printf( "DEBUG: Configuration loaded from ~/.LUMI-messenger.ini: appkey = %s, userkey = %s\n",
-    //        config.appkey, config.userkey );
+    if ( arg_debug != 0 ) {
+        const char *source[] = { "default", "command line", "configuration file"};
+        printf( "Combined parameters from command line and ini file:\n" );
+        if ( config.appkey != NULL )  printf( "- appkey: %s (%s)\n",  config.appkey,  source[source_appkey] );
+        if ( config.userkey != NULL ) printf( "- userkey: %s (%s)\n", config.userkey, source[source_userkey] );
+        if ( config.title != NULL )   printf( "- title: %s (%s)\n",   config.title,   source[source_title] );
+        if ( config.message != NULL ) printf( "- message: %s (%s)\n", config.message, source[source_message] );
+        if ( config.sound != NULL )   printf( "- sound: %s (%s)\n",   config.sound,   source[source_sound] );
+        printf( "\n" );
+    }
 
     // Now use libcurl to push a message.
 
@@ -268,14 +400,19 @@ int main( int argc, char *argv[] ) {
 
         // For now we'll send the output to /dev/null as it is only useful for
         // debugging. We can keep it on the screen if we would later add a debug mode.
-        FILE *devnull = fopen( "/dev/null", "w" );
-        curl_easy_setopt( curl, CURLOPT_WRITEDATA, devnull );
+        FILE *devnull;
+        if ( arg_debug == 0 ) {
+            devnull = fopen( "/dev/null", "w" );
+            curl_easy_setopt( curl, CURLOPT_WRITEDATA, devnull );
+        }
 
         // Perform the request
+        if ( arg_debug != 0 ) printf( "Calling curl, returns: " );
         res = curl_easy_perform( curl );
 
+        if ( arg_debug != 0 ) printf( "\n\n" );
         if( res != CURLE_OK ) {
-            fprintf( stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror( res ) );
+            fprintf( stderr, "Sending the message failed, cURL returned: %s\n", curl_easy_strerror( res ) );
         } else {
             printf( "Message sent successfully!\n" );
         }
@@ -283,16 +420,13 @@ int main( int argc, char *argv[] ) {
         // Clean up
         curl_easy_cleanup( curl );
         curl_mime_free( mime );
-        fclose( devnull );
+        if ( arg_debug == 0 ) fclose( devnull );
     }
 
     curl_global_cleanup();
 
-    // Clean-up the data read by ini
-
-    if ( config.appkey )  free( (void*) config.appkey );
-    if ( config.userkey ) free( (void*) config.userkey );
-    free( config_path_file );
+    // It's a puzzle to figure out which memory must be freed, and as this is done
+    // automatically when a program terminates, we don't care.
 
     return 0;
 }
