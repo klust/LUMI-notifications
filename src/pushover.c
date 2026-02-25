@@ -22,11 +22,11 @@
 
 const char *version = "0.1";
 const char *default_config_file = ".LUMI-messenger.ini";
-const char *default_message = "Hello from LUMI-messenger";
+const char *default_message = "Hello from pushover in LUMI-messenger";
 
 typedef struct
 {
-    const char *appkey;
+    const char *apitoken;
     const char *userkey;
     const char *title;
     const char *message;
@@ -43,18 +43,19 @@ void PrintHelp( void ) {
     fprintf( stderr,
         "\n"
         "Command line options for pushover:\n"
-        "   -a/--appkey :               Specify the application key for pushover, overwriting\n"
-        "                               what is in the configuration file.\n"
+        "   -a/--api-token              Specify the API token for pushover, overwriting what\n"
+        "                               is in the configuration file.\n"
         "   -c/--configuration-file     Specify the configuration file to use. The default\n"
         "                               is ~/.LUMI-messenger.ini.\n"
         "   -d/--debug                  Print additional debug info.\n"
+        "   -h/--help                   Print this help information and quit\n"
         "   -m/--message                Message to send.\n"
         "   -n/--no-configuration-file  Do not read any configuration file, use command \n"
         "                               line arguments instead.\n"
         "   -s/--sound                  Specify the sound to use in pushover from the list of\n"
         "                               pushover-supported sounds.\n"
         "   -t/--title                  Specify a title for the message (e.g., Alert)\n"
-        "   -u/--userkey                Specify the user key for pushover, overwriting what\n"
+        "   -u/--user-key               Specify the user key for pushover, overwriting what\n"
         "                               is in the configuration file.\n"
         "   -v/--version                Print the version of pushover.\n"
         "\n"
@@ -69,6 +70,8 @@ void PrintHelp( void ) {
         "gamelan       Percussive chime    climb         Rising scale\n"
         "incoming      Mail has arrived    none          Silent\n"
         "\n"
+        "Default configuration file: ~/%s\n\n",
+        default_config_file
     );
 
     return;
@@ -85,9 +88,9 @@ static int handler( void* user, const char* section, const char* name,
     pushover_configuration* pconfig = (pushover_configuration*) user;
 
     #define MATCH(s, n) strcmp(section, s) == 0 && strcmp(name, n) == 0
-    if  (MATCH( "pushover", "appkey" ) ) {
-        pconfig->appkey = strdup( value );
-    } else if ( MATCH( "pushover", "userkey" ) ) {
+    if  (MATCH( "pushover", "api-token" ) ) {
+        pconfig->apitoken = strdup( value );
+    } else if ( MATCH( "pushover", "user-key" ) ) {
         pconfig->userkey = strdup( value );
     } else if ( MATCH( "pushover", "title" ) ) {
         pconfig->title = strdup( value );
@@ -108,7 +111,7 @@ int main( int argc, char *argv[] ) {
     // Get the command line arguments
     //
 
-    const char *arg_appkey = (char *) NULL;
+    const char *arg_apitoken = (char *) NULL;
     const char *arg_userkey = (char *) NULL;
     const char *arg_config_file = (char *) NULL;
     const char *arg_title = (char *) NULL;
@@ -120,7 +123,7 @@ int main( int argc, char *argv[] ) {
     // Define the long options
     // { "name", has_arg, *flag, val }
     static struct option long_options[] = {
-        {"appkey",                required_argument, 0, 'a'},
+        {"api-token",             required_argument, 0, 'a'},
         {"configuration-file",    required_argument, 0, 'c'},
         {"debug",                 no_argument,       0, 'd'},
         {"help",                  no_argument,       0, 'h'},
@@ -128,7 +131,7 @@ int main( int argc, char *argv[] ) {
         {"no-configuration-file", no_argument,       0, 'n'},
         {"sound",                 required_argument, 0, 's'},
         {"title",                 required_argument, 0, 't'},
-        {"userkey",               required_argument, 0, 'u'},
+        {"user-key",              required_argument, 0, 'u'},
         {"version",               no_argument,       0, 'v'},
         {0,                       0,                 0, 0} // Required end of array
     };
@@ -138,7 +141,7 @@ int main( int argc, char *argv[] ) {
     while ( ( opt = getopt_long( argc, argv, "a:c:dhm:ns:t:u:v", long_options, &option_index) ) != -1 ) {
         switch (opt) {
             case 'a':
-                arg_appkey = optarg;
+                arg_apitoken = optarg;
                 break;
             case 'c': 
                 arg_config_file = optarg;
@@ -197,8 +200,8 @@ int main( int argc, char *argv[] ) {
 
     if ( arg_debug != 0 ) {
         printf( "\nValues after processing the argument list:\n" );
-        if ( arg_appkey != NULL )      printf( "- appkey from argument list: %s\n",      arg_appkey );
-        if ( arg_userkey != NULL )     printf( "- userkey from argument list: %s\n",     arg_userkey );
+        if ( arg_apitoken != NULL )    printf( "- API token from argument list: %s\n",   arg_apitoken );
+        if ( arg_userkey != NULL )     printf( "- user key from argument list: %s\n",    arg_userkey );
         if ( arg_title != NULL )       printf( "- title from argument list: %s\n",       arg_title );
         if ( arg_message != NULL )     printf( "- message from argument list: %s\n",     arg_message );
         if ( arg_sound != NULL )       printf( "- sound from argument list: %s\n",       arg_sound );
@@ -210,7 +213,7 @@ int main( int argc, char *argv[] ) {
     // Read data from the INI file.
 
     pushover_configuration ini_config;
-    ini_config.appkey  = NULL;
+    ini_config.apitoken  = NULL;
     ini_config.userkey = NULL;
     ini_config.title   = NULL;
     ini_config.message = NULL;
@@ -252,11 +255,11 @@ int main( int argc, char *argv[] ) {
 
         if ( arg_debug != 0 ) {
             printf( "Values read from the configuration file %s:\n", config_path_file );
-            if ( ini_config.appkey != NULL )  printf( "- appkey from argument list: %s\n",  ini_config.appkey );
-            if ( ini_config.userkey != NULL ) printf( "- userkey from argument list: %s\n", ini_config.userkey );
-            if ( ini_config.title != NULL )   printf( "- title from argument list: %s\n",   ini_config.title );
-            if ( ini_config.message != NULL ) printf( "- message from argument list: %s\n", ini_config.message );
-            if ( ini_config.sound != NULL )   printf( "- sound from argument list: %s\n",   ini_config.sound );
+            if ( ini_config.apitoken != NULL ) printf( "- API token from argument list: %s\n", ini_config.apitoken );
+            if ( ini_config.userkey != NULL )  printf( "- user key from argument list: %s\n",  ini_config.userkey );
+            if ( ini_config.title != NULL )    printf( "- title from argument list: %s\n",     ini_config.title );
+            if ( ini_config.message != NULL )  printf( "- message from argument list: %s\n",   ini_config.message );
+            if ( ini_config.sound != NULL )    printf( "- sound from argument list: %s\n",     ini_config.sound );
             printf( "\n" );
         }
 
@@ -265,25 +268,25 @@ int main( int argc, char *argv[] ) {
 
     pushover_configuration config; // Actual configuration to use to send the message
 
-    // Determine the actual appkey
+    // Determine the actual API token
 
-    int source_appkey = 0;   // Variable used to track the source of the appkey for debug output
-    int source_userkey = 0;  // Variable used to track the source of the userkey for debug output
+    int source_apitoken = 0; // Variable used to track the source of the API token for debug output
+    int source_userkey = 0;  // Variable used to track the source of the user key for debug output
     int source_title = 0;    // Variable used to track the source of the title for debug output
     int source_message = 0;  // Variable used to track the source of the message for debug output
     int source_sound = 0;    // Variable used to track the source of the sound for debug output
 
-    if ( arg_appkey != NULL ) {
-        config.appkey = arg_appkey;
-        source_appkey = 1;
-    } else if ( ini_config.appkey != NULL ) {
-        config.appkey = ini_config.appkey;
-        source_appkey = 2;
+    if ( arg_apitoken != NULL ) {
+        config.apitoken = arg_apitoken;
+        source_apitoken = 1;
+    } else if ( ini_config.apitoken != NULL ) {
+        config.apitoken = ini_config.apitoken;
+        source_apitoken = 2;
     } else {
         if ( config_path_file == NULL )
-            fprintf( stderr, "No appkey given.\n" );
+            fprintf( stderr, "No API token given.\n" );
         else
-            fprintf( stderr, "No appkey given in either %s or on the command line.\n", config_path_file );
+            fprintf( stderr, "No API token given in either %s (field api-token in [pushover]) or on the command line (--api-token).\n", config_path_file );
         return ERROR_NO_APPKEY;
     }
 
@@ -297,9 +300,9 @@ int main( int argc, char *argv[] ) {
         source_userkey = 2;
     } else {
         if ( config_path_file == NULL )
-            fprintf( stderr, "No userkey given.\n" );
+            fprintf( stderr, "No user key given.\n" );
         else
-            fprintf( stderr, "No userkey given in either %s or on the command line.\n", config_path_file );
+            fprintf( stderr, "No user key given in either %s (field user-key in [pushover]) or on the command line (--user-key).\n", config_path_file );
         return ERROR_NO_USERKEY;
     }
    
@@ -342,11 +345,11 @@ int main( int argc, char *argv[] ) {
     if ( arg_debug != 0 ) {
         const char *source[] = { "default", "command line", "configuration file"};
         printf( "Combined parameters from command line and ini file:\n" );
-        if ( config.appkey != NULL )  printf( "- appkey: %s (%s)\n",  config.appkey,  source[source_appkey] );
-        if ( config.userkey != NULL ) printf( "- userkey: %s (%s)\n", config.userkey, source[source_userkey] );
-        if ( config.title != NULL )   printf( "- title: %s (%s)\n",   config.title,   source[source_title] );
-        if ( config.message != NULL ) printf( "- message: %s (%s)\n", config.message, source[source_message] );
-        if ( config.sound != NULL )   printf( "- sound: %s (%s)\n",   config.sound,   source[source_sound] );
+        if ( config.apitoken != NULL ) printf( "- API token: %s (%s)\n",  config.apitoken, source[source_apitoken] );
+        if ( config.userkey != NULL )  printf( "- user key: %s (%s)\n", config.userkey,    source[source_userkey] );
+        if ( config.title != NULL )    printf( "- title: %s (%s)\n",   config.title,       source[source_title] );
+        if ( config.message != NULL )  printf( "- message: %s (%s)\n", config.message,     source[source_message] );
+        if ( config.sound != NULL )    printf( "- sound: %s (%s)\n",   config.sound,       source[source_sound] );
         printf( "\n" );
     }
 
@@ -368,7 +371,7 @@ int main( int argc, char *argv[] ) {
         // API Token
         part = curl_mime_addpart( mime );
         curl_mime_name( part, "token" );
-        curl_mime_data( part, config.appkey, CURL_ZERO_TERMINATED );
+        curl_mime_data( part, config.apitoken, CURL_ZERO_TERMINATED );
 
         // User Key
         part = curl_mime_addpart( mime );
