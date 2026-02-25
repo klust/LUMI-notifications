@@ -1,0 +1,95 @@
+.\" Written by Kurt Lust, kurt.lust@uantwerpen.be for the LUMI consortium.
+.TH man 1 "25 February 2026" "0.9" "pushover command"
+
+.SH NAME
+\fBpushover\fR \- Send notifications using the pushover service (pushover.net).
+
+.SH DESCRIPTION
+\fBpushover\fR is a simple tool to push messages to the pushover service in a safe way.
+Credentials can be stored in a configuration file so that they cannot be seen as
+arguments of a command in the process list. The tool uses libcurl to compose and 
+send the message using the https protocol.
+
+The tool can be configured via a configuration file. The name of that configuration
+file is determined at compile time and can be found using \fBpushover --help\fR and
+is stored in your home directory. It is best to set the permissions to 600, i.e.,
+group and others have no access to the file, as it is the best place to store the
+credentials that are needed to send a message.
+
+The credentials consist of both a user key and an API token. To obtain those
+credentials:
+
+.IP \[bu] 2
+Create an account on pushover.net, or log in to your account if you already have one.
+Your user key will appear on the page that you get just after logging on (you may need
+to log out and log in again if you just signed up).
+
+.IP \[bu] 2
+Towards the bottom of the profile page that you get after logging in to pushover.net,
+you can see a list of your applications and it offers you the option to create a new
+one. Create an application if you don't have one yet that you want to use for this
+configuration. If you then click on the application in the list of your applications,
+the page that you see then will clearly show you you API Token/Key which is what
+you need for the API token.
+
+.PP
+The configuration file has the following format:
+
+.EX
+; This is a comment line
+[pushover]
+
+api-token = XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+user-key = XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+title = New alert
+sound = cashregister
+message = My default message
+.EE
+
+All key-value pairs are optional, but we highly recommend to store the user key and API token
+in a configuration file and not specify them on the command line as then they can be intercepted
+by other users and used to spam you with notifications.
+
+.SH OPTIONS
+.TP
+\fB-a\fR, \fB--api-token\fR
+Specify the API token on the command line, overwriting what may be set in the
+configuration file. It is not recommended to use this option as the API token can
+appear in the process list if suitable options are used to see running processes.
+.TP
+\fB-c\fR, \fB--configuration-file\fR
+Specify the configuration file to use instead of the default one.
+.TP
+\fB-d\fR, \fB--debug\fR
+Print additional debug information.
+.TP
+\fB-h\fR, \fB--help\fR
+Print help information about pushover
+.TP
+\fB-m\fR, \fB--message\fR
+Specifies the message to be sent. This argument is optional. If a text string
+is specified without flag, it will be taken as the message.
+.TP
+\fB-n\fR, \fB--no-configuration-file\fR
+Do not read the configuration file, but use only command line arguments.
+This is useful for a quick try if you have not yet created a configuration file.
+.TP
+\fB-s\fR, \fB--sound\fR
+Specify the sound to use in pushover from the list of pushover-supported sounds
+that you can see with \fBpushover --help\fR. This argument is entirely optional,
+and if not specified on the command line or in the configuration file, a default
+will be used.
+.TP
+\fB-t\fR, \fB--title\fR
+Specify the title for the message. This argument is entirely optional, and pushover
+will use the name of the pushover application if not specified in either the configuration
+file or the argument list.
+.TP
+\fB-u\fR, \fB--user\fR
+Specify the user key for pushover, overwriting what is in the configuration file.
+.TP
+\fB-v\fR, \fB--version\fR
+Show the version of pushover and quit.
+
+.SH AUTHOR
+Kurt Lust, University of Antwerpen, for the LUMI consortium.
