@@ -412,6 +412,7 @@ int main( int argc, char *argv[] ) {
         // Perform the request
         if ( arg_debug != 0 ) printf( "Calling curl, returns: " );
         res = curl_easy_perform( curl );
+        if ( arg_debug != 0 ) printf( "\n\n" );
 
         if ( arg_debug != 0 ) printf( "\n\n" );
         if( res != CURLE_OK ) {
