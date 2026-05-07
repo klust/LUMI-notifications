@@ -401,8 +401,8 @@ int main( int argc, char *argv[] ) {
         curl_easy_setopt( curl, CURLOPT_URL, "https://api.pushover.net/1/messages.json" );
         curl_easy_setopt( curl, CURLOPT_MIMEPOST, mime );
 
-        // For now we'll send the output to /dev/null as it is only useful for
-        // debugging. We can keep it on the screen if we would later add a debug mode.
+        // We'll send the output to /dev/null if we are not debugging to avoid bombarding the user
+        // with output they cannot understand.
         FILE *devnull;
         if ( arg_debug == 0 ) {
             devnull = fopen( "/dev/null", "w" );
