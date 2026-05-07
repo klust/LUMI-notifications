@@ -13,7 +13,8 @@ LIBS        ?=
 .SUFFIXES:
 
 exe : bindir \
-	  ../bin/pushover
+	  ../bin/pushover \
+	  ../bin/pushslack
 
 clean : 
 	-/bin/rm ../bin/*
@@ -28,4 +29,8 @@ get-inih :
 	
 pushover : ../bin/pushover
 ../bin/pushover : pushover.c Makefile ini.c ini.h
-	$(CC) $(CFLAGS) $(DEFINES) ini.c pushover.c -lcurl $(LIBS) -o $@
+	$(CC) $(CFLAGS) $(DEFINES) ini.c $< -lcurl $(LIBS) -o $@
+
+slack : ../bin/pushslack
+../bin/pushslack : pushslack.c Makefile ini.c ini.h
+	$(CC) $(CFLAGS) $(DEFINES) ini.c $< -lcurl $(LIBS) -o $@
