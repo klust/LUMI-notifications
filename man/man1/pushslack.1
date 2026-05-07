@@ -1,0 +1,140 @@
+.\" Written by Kurt Lust, kurt.lust@uantwerpen.be for the LUMI consortium.
+.TH man 1 "7 May 2026" "0.9" "pushslack command"
+
+.SH NAME
+\fBpushslack\fR \- Send notifications so Slack.
+
+.SH DESCRIPTION
+\fBpushslack\fR is a simple tool to push messages to tSlack in a safe way.
+Credentials can be stored in a configuration file so that they cannot be seen as
+arguments of a command in the process list. The tool uses libcurl to compose and 
+send the message using the https protocol.
+
+The tool can be configured via a configuration file. The name of that configuration
+file is determined at compile time and can be found using \fBpushslack --help\fR and
+is stored in your home directory. It is best to set the permissions to 600, i.e.,
+group and others have no access to the file, as it is the best place to store the
+credentials that are needed to send a message.
+
+This tool supports two communication modes with Slack, though both require setting
+up a Slack app. The primary mode is communication via `chat.postMessage`, while the
+fallback method is via a webhook. In both cases a Slack app has to be created.
+In the case of communication via `chat.postMessage`, the messages will appear in 
+the "Apps" section in the workspace under the name of the app while in the 
+webhook case, messages appear under your own name in "Direct messages". Even though
+the webhook communication is easier to implement, this may not be desirable as you 
+may want to use messages to yourself as some kind of note taking also.
+
+To set up for `chat.postMessage` communication method:
+
+.IP \[bu] 2
+If you don't have a suitable Slack workspace yet, create one via the Slack web app
+https://app.slack.com.
+
+.IP \[bu] 2
+Create a Slack app from scratch via the Slack API dashboard at https://api.slack.com/apps.
+Create that app in the workspace where you want to receive your messages.
+
+.IP \[bu] 2
+In the app, under "OAuth and Permissions", scroll down the page to "Scopes" and add the 
+"Bot Token Scope" "chat:write".
+
+.IP \[bu] 2
+Now you have to install or re-install the app in the workspace you created which can also be 
+done from the "OAuth and Permissions" screen, a little higher up, and in "Channel for webhook", 
+select your app under "Direct Messages".
+
+Now you can find the "Bot User OAuth Token" (starts with \fBxoxb-\fR) which you will need to send 
+messages. This is the argument for \fBbot-token\fR in the configuration file or the 
+\fB--bot-token\fR command line option (see below).
+
+.IP \[bu] 2
+You also need to find your slack member ID in the workplace: Click on your profile picture in Slack. 
+Select "Profile" in the menu. Then in the right screen with your profile, click "More" 
+(the three vertical dots) and finally "Copy member ID". It will likely start with U.
+This is the argument for \fBmember-id\fR in the configuration file or the
+\fB--member-id\fR command line option (see below).
+
+.PP
+To set up for the webhook communication method:
+
+.IP \[bu] 2
+If you don't have a suitable Slack workspace yet, create one via the Slack web app
+https://app.slack.com.
+
+.IP \[bu] 2
+Create a Slack app from scratch via the Slack API dashboard at https://api.slack.com/apps.
+Create that app in the workspace where you want to receive your messages.
+
+.IP \[bu] 2
+Enable Webhooks: In the app settings, click "Incoming Webhooks" and toggle it to "On."
+
+.IP \[bu] 2
+Add Webhook to Workspace: Click "Add New Webhook" at the bottom of the screen from the previous bullet. 
+When prompted to choose a channel, select your own name (the "Direct Messages" section).
+
+.IP \[bu] 2
+Copy the URL: It will look like \fBhttps://hooks.slack.com/services/T.../B.../XXXX/fR.
+This is the argument for \fBwebhook-url\fR in the configuration file or the
+\fB--webhook-url\fR command line option (see below).
+
+.PP
+The configuration file has the following format:
+
+.EX
+; This is a comment line
+[slack]
+
+webhook-url = https://hooks.slack.com/services/T.../B.../XXXX
+bot-token = XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+member-id = XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+message = My default message
+.EE
+
+All key-value pairs are optional, but we highly recommend to store webhook-url,
+bot-token and member-id in a configuration file and not specify them on the 
+command line as then they can be intercepted
+by other users and used to spam you with notifications.
+You need either \fBbot-token\fR and \fBmember-id\fR or \fBwebhook-url\fR.
+If both are specified, \fBpushslack\fR will use the chat.postMessage method.
+
+.SH OPTIONS
+.TP
+\fB-b\fR, \fB--bot-token\fR
+Specify the bot token for the chat.postMessage communication method 
+on the command line, overwriting what may be set in the
+configuration file. It is not recommended to use this option as the bot token can
+appear in the process list if suitable options are used to see running processes.
+.TP
+\fB-c\fR, \fB--configuration-file\fR
+Specify the configuration file to use instead of the default one.
+.TP
+\fB-d\fR, \fB--debug\fR
+Print additional debug information.
+.TP
+\fB-h\fR, \fB--help\fR
+Print help information about pushslack.
+.TP
+\fB-m\fR, \fB--message\fR
+Specifies the message to be sent. This argument is optional. If a text string
+is specified without flag, it will be taken as the message.
+.TP
+\fB-n\fR, \fB--no-configuration-file\fR
+Do not read the configuration file, but use only command line arguments.
+This is useful for a quick try if you have not yet created a configuration file.
+.TP
+\fB-u\fR, \fB--member-id\fR
+Specify the memberID for the chat.postMessage communication method,
+overwriting what is in the configuration file.
+.TP
+\fB-v\fR, \fB--version\fR
+Show the version of pushover and quit.
+.TP
+\fB-w\fR, \fB--webhook-url\fR
+Specify the webhook URL to use for the webhook communication method, overwriting
+what may be set in the configuration file.
+It is not recommended to use this option as the bot token can
+appear in the process list if suitable options are used to see running processes.
+
+.SH AUTHOR
+Kurt Lust, University of Antwerpen, for the LUMI consortium.
