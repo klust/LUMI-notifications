@@ -22,6 +22,10 @@
 #define ERROR_WRONG_ARGUMENT 7
 #define ERROR_INTERNAL_ERROR 8
 
+#define MODE_NONE            0
+#define MODE_CHATPOSTMESSAGE 1
+#define MODE_WEBHOOK         2
+
 const char *version = "0.1";
 const char *default_config_file = ".LUMI-messenger.ini";
 const char *default_message = "Hello from Slack in LUMI-messenger";
@@ -321,10 +325,10 @@ int main( int argc, char *argv[] ) {
 
     // Now determine the communication mode: 1 = chat.postMessage, 2 = webhook
 
-    int communication_mode = 0;
+    int communication_mode = MODE_NONE;
 
     if ( ( config.bottoken != NULL ) && ( config.memberid != NULL ) )
-        communication_mode = 1;
+        communication_mode = MODE_CHATPOSTMESSAGE;
     else if ( ( config.bottoken != NULL ) || ( config.memberid != NULL ) ) {
         // Either config.bottoken is not NULL or memberid is not NULL but not both
         if ( config.bottoken == NULL ) {
@@ -341,7 +345,7 @@ int main( int argc, char *argv[] ) {
             return ERROR_NO_MEMBERID;
         }
     } else if ( config.webhookurl != NULL ) {
-        communication_mode = 1;
+        communication_mode = MODE_WEBHOOK;
     } else {
         fprintf( stderr, "Either a bot token and member-id need to be specified, or a webhook URL, but neither were found.\n" );
         return ERROR_NO_WEBHOOKURL;
@@ -349,9 +353,9 @@ int main( int argc, char *argv[] ) {
 
     if ( arg_debug != 0 ) {
         switch ( communication_mode ) {
-            case 1  : printf( "Communicating via chat.postMessage.\n\n" ); break;
-            case 2  : printf( "Communicating via a webhook URL.\n\n" ); break;
-            default : fprintf( stderr, "Should never have arrived at this point. File %s at line %d.\n", __FILE__, __LINE__ ); return ERROR_INTERNAL_ERROR;
+            case MODE_CHATPOSTMESSAGE : printf( "Communicating via chat.postMessage.\n\n" ); break;
+            case MODE_WEBHOOK         : printf( "Communicating via a webhook URL.\n\n" ); break;
+            default :                   fprintf( stderr, "Should never have arrived at this point. File %s at line %d.\n", __FILE__, __LINE__ ); return ERROR_INTERNAL_ERROR;
         }
     }
 
@@ -369,7 +373,7 @@ int main( int argc, char *argv[] ) {
 
     if( curl ) {
     
-        if ( communication_mode == 1 ) { // Communicating via chat.postMessage
+        if ( communication_mode == MODE_CHATPOSTMESSAGE ) { // Communicating via chat.postMessage
 
             struct curl_slist *headers = NULL;
 
