@@ -391,8 +391,9 @@ int main( int argc, char *argv[] ) {
             headers = curl_slist_append(headers, "Content-Type: application/json");
 
             // Make the json message.
-            char dummybuf[2];
-            int json_length = snprintf( dummybuf, (size_t) 2, "{\"channel\":\"%s\",\"text\":\"%s\"}", config.memberid, config.message ) + 1;
+            const int bufsize = 25; // Large enough that Cray Clang does not complain that the snprintf buffer will always be truncated.
+            char dummybuf[bufsize];
+            int json_length = snprintf( dummybuf, (size_t) bufsize, "{\"channel\":\"%s\",\"text\":\"%s\"}", config.memberid, config.message ) + 1;
             char *json = (char *) malloc( (size_t) (json_length * sizeof( char )) );
             if ( json == (char *) NULL ) { fprintf( stderr, "Out-of-memory in file %s at line %d.\n", __FILE__, __LINE__ ); return ERROR_OUT_OF_MEMORY; }
             required = snprintf( json, (size_t) json_length, "{\"channel\":\"%s\",\"text\":\"%s\"}", config.memberid, config.message );
@@ -440,8 +441,9 @@ int main( int argc, char *argv[] ) {
             headers = curl_slist_append( headers, "Content-Type: application/json" );
 
             // Build the json part
-            char dummybuf[2];
-            int json_length = snprintf( dummybuf, (size_t) 2, "{\"text\":\"%s\"}", config.message ) + 1;
+            const int bufsize = 12; // Large enough that Clang does not complain that the snprintf buffer will always be truncated.
+            char dummybuf[bufsize];
+            int json_length = snprintf( dummybuf, (size_t) bufsize, "{\"text\":\"%s\"}", config.message ) + 1;
             char *json = (char *) malloc( (size_t) (json_length * sizeof( char )) );
             if ( json == (char *) NULL ) { fprintf( stderr, "Out-of-memory in file %s at line %d.\n", __FILE__, __LINE__ ); return ERROR_OUT_OF_MEMORY; }
             required = snprintf( json, (size_t) json_length, "{\"text\":\"%s\"}", config.message );
