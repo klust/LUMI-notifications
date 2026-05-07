@@ -1,3 +1,8 @@
 src/ini.c
 src/ini.h
+src/messenger.ini
+src/TODO.md
 *.code-workspace
+bin
+src/LICENSE-inih.txt
+src/test*.c
