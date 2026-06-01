@@ -1,6 +1,6 @@
 src/ini.c
 src/ini.h
-src/messenger.ini
+src/notifications.ini
 src/TODO.md
 *.code-workspace
 bin

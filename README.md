@@ -1,4 +1,4 @@
-# LUMI-messenger
+# LUMI-notifications
 
 Tools to send push notifications to various tools. These can then be used, e.g.,
 at the start and end of job execution as there is no way to have Slurm send mails

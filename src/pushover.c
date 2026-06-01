@@ -21,8 +21,8 @@
 #define ERROR_WRONG_ARGUMENT 6
 
 const char *version = "0.1";
-const char *default_config_file = ".LUMI-messenger.ini";
-const char *default_message = "Hello from pushover in LUMI-messenger";
+const char *default_config_file = ".LUMI-notifications.ini";
+const char *default_message = "Hello from pushover in LUMI-notifications";
 
 typedef struct
 {
@@ -46,7 +46,7 @@ void PrintHelp( void ) {
         "   -a/--api-token              Specify the API token for pushover, overwriting what\n"
         "                               is in the configuration file.\n"
         "   -c/--configuration-file     Specify the configuration file to use. The default\n"
-        "                               is ~/.LUMI-messenger.ini.\n"
+        "                               is ~/.LUMI-notifications.ini.\n"
         "   -d/--debug                  Print additional debug info.\n"
         "   -h/--help                   Print this help information and quit\n"
         "   -m/--message                Message to send.\n"

@@ -1,4 +1,4 @@
-# Makefile for the messenger tools
+# Makefile for the notification tools
 #
 # IMPORTANT: Run with make -R (or make --no-builtin-variables) if CC etc are 
 # not defined in the environment or the make command line as otherwise the 

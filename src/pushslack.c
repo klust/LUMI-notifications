@@ -27,8 +27,8 @@
 #define MODE_WEBHOOK         2
 
 const char *version = "0.1";
-const char *default_config_file = ".LUMI-messenger.ini";
-const char *default_message = "Hello from Slack in LUMI-messenger";
+const char *default_config_file = ".LUMI-notifications.ini";
+const char *default_message = "Hello from Slack in LUMI-notifications";
 
 typedef struct
 {
@@ -52,7 +52,7 @@ void PrintHelp( void ) {
         "                               configuration file. This has precedence over \n"
         "                               --webhook-url.\n"
         "   -c/--configuration-file     Specify the configuration file to use. The default\n"
-        "                               is ~/.LUMI-messenger.ini.\n"
+        "                               is ~/.LUMI-notifications.ini.\n"
         "   -d/--debug                  Print additional debug info.\n"
         "   -h/--help                   Print this help information and quit\n"
         "   -m/--message                Message to send.\n"
